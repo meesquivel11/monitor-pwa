@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <title>Monitor Móvil</title>
+
+  <style>
+    :root {
+      --fondo:#f4f6f8;
+      --superficie:#fff;
+      --texto:#1f2937;
+      --suave:#6b7280;
+      --borde:#e5e7eb;
+      --oscuro:#111827;
+      --ok-bg:#ecfdf5;
+      --ok:#065f46;
+      --error-bg:#fef2f2;
+      --error:#991b1b;
+    }
+
+    * { box-sizing:border-box; }
+    html { -webkit-text-size-adjust:100%; }
+    body {
+      margin:0;
+      min-height:100vh;
+      font-family:Arial,Helvetica,sans-serif;
+      background:var(--fondo);
+      color:var(--texto);
+    }
+
+    button,input,select,textarea { font:inherit; }
+    button { border:0; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+
+    input,select,textarea {
+      width:100%;
+      min-height:48px;
+      padding:12px 13px;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      background:#fff;
+      color:var(--texto);
+      font-size:16px;
+    }
+
+    textarea { min-height:82px; resize:vertical; }
+    label { font-size:13px; font-weight:700; color:#4b5563; }
+
+    .app { max-width:760px; margin:auto; padding-bottom:92px; }
+
+    header {
+      position:sticky;
+      top:0;
+      z-index:20;
+      padding:calc(16px + env(safe-area-inset-top)) 18px 16px;
+      background:var(--oscuro);
+      color:#fff;
+      box-shadow:0 2px 14px rgba(0,0,0,.12);
+    }
+
+    .header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    header h1 { margin:0; font-size:23px; }
+    header p { margin:4px 0 0; color:#cbd5e1; font-size:12px; }
+    .version { padding:6px 9px; border:1px solid rgba(255,255,255,.2); border-radius:999px; font-size:11px; font-weight:700; }
+
+    main { padding:18px; }
+    .cargando { padding:55px 20px; text-align:center; color:var(--suave); font-size:14px; }
+    .seccion { margin-bottom:22px; }
+    .seccion-titulo { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:11px; }
+    .seccion-titulo h2 { margin:0; font-size:16px; }
+    .seccion-titulo span { color:var(--suave); font-size:12px; }
+
+    .resumen { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+    .resumen-card,.cuenta,.registrar-card,.movimientos {
+      background:var(--superficie);
+      border:1px solid var(--borde);
+      border-radius:17px;
+    }
+    .resumen-card { padding:16px; min-width:0; }
+    .etiqueta { color:var(--suave); font-size:12px; margin-bottom:7px; }
+    .valor { font-size:clamp(19px,5vw,25px); font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .cuentas { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .cuenta { padding:14px; min-width:0; }
+    .cuenta-nombre { font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cuenta-inst { margin:3px 0 12px; color:var(--suave); font-size:11px; }
+    .cuenta-saldo { font-size:clamp(18px,5vw,22px); font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cuenta-leyenda { margin-top:4px; color:var(--suave); font-size:11px; }
+
+    .registrar-card { padding:16px; }
+    .registrar-card p { margin:0 0 13px; color:var(--suave); font-size:13px; line-height:1.45; }
+    .btn-principal,.btn-flotante,.btn-guardar {
+      width:100%;
+      min-height:52px;
+      padding:13px 18px;
+      border-radius:14px;
+      background:var(--oscuro);
+      color:#fff;
+      font-weight:800;
+    }
+
+    .movimientos { overflow:hidden; }
+    .movimiento { display:grid; grid-template-columns:1fr auto; gap:10px; padding:14px; border-bottom:1px solid #f0f1f3; }
+    .movimiento:last-child { border-bottom:0; }
+    .mov-desc { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mov-meta { margin-top:4px; color:var(--suave); font-size:11px; line-height:1.35; }
+    .mov-importe { align-self:center; font-size:14px; font-weight:800; white-space:nowrap; }
+    .vacio { padding:22px 14px; text-align:center; color:var(--suave); font-size:13px; }
+
+    .barra-inferior {
+      position:fixed;
+      left:0; right:0; bottom:0;
+      z-index:30;
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+      background:linear-gradient(to top,rgba(244,246,248,1) 70%,rgba(244,246,248,0));
+      pointer-events:none;
+    }
+    .barra-inner { max-width:728px; margin:auto; pointer-events:auto; }
+    .btn-flotante { min-height:54px; box-shadow:0 10px 28px rgba(17,24,39,.24); }
+
+    .modal-fondo {
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:100;
+      overflow-y:auto;
+      background:rgba(17,24,39,.55);
+    }
+    .modal-fondo.abierto { display:block; }
+    .modal { width:100%; max-width:760px; min-height:100vh; margin:auto; background:#fff; }
+    .modal-header {
+      position:sticky;
+      top:0;
+      z-index:4;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:calc(14px + env(safe-area-inset-top)) 18px 14px;
+      border-bottom:1px solid var(--borde);
+      background:rgba(255,255,255,.97);
+    }
+    .modal-header h2 { margin:0; font-size:18px; }
+    .btn-cerrar { width:42px; height:42px; border-radius:50%; background:#f3f4f6; color:#374151; font-size:23px; }
+    .formulario { padding:18px 18px calc(28px + env(safe-area-inset-bottom)); }
+    .grid-form { display:grid; grid-template-columns:1fr; gap:14px; }
+    .campo { display:flex; flex-direction:column; gap:6px; }
+    .oculto { display:none !important; }
+    .ayuda { color:var(--suave); font-size:11px; line-height:1.35; }
+
+    .grupo { display:none; padding:14px; border:1px solid var(--borde); border-radius:14px; background:#fafafa; }
+    .grupo.visible { display:block; }
+    .grupo h3 { margin:0 0 12px; font-size:13px; }
+    .grupo-grid { display:grid; grid-template-columns:1fr; gap:13px; }
+
+    .mensaje { display:none; margin-bottom:14px; padding:12px 13px; border-radius:12px; font-size:13px; line-height:1.4; }
+    .mensaje.ok { display:block; background:var(--ok-bg); color:var(--ok); }
+    .mensaje.error { display:block; background:var(--error-bg); color:var(--error); }
+    .btn-guardar { min-height:54px; }
+
+
+    .sync-panel {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:18px;
+      padding:12px 13px;
+      border:1px solid var(--borde);
+      border-radius:14px;
+      background:#fff;
+    }
+    .sync-info { min-width:0; }
+    .sync-estado { font-size:13px; font-weight:800; }
+    .sync-detalle { margin-top:3px; color:var(--suave); font-size:11px; }
+    .btn-sync {
+      flex:0 0 auto;
+      min-height:38px;
+      padding:8px 11px;
+      border-radius:10px;
+      background:#eef2f7;
+      color:#111827;
+      font-size:12px;
+      font-weight:800;
+    }
+    .badge-pendientes {
+      display:inline-block;
+      margin-left:5px;
+      padding:2px 7px;
+      border-radius:999px;
+      background:#fef3c7;
+      color:#92400e;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    @media (min-width:640px) {
+      main { padding:22px; }
+      .cuentas { grid-template-columns:repeat(4,1fr); }
+      .modal-fondo { padding:22px; }
+      .modal { min-height:auto; margin:20px auto; border-radius:20px; overflow:hidden; }
+      .modal-header { padding-top:14px; }
+      .formulario { padding:22px; }
+      .grid-form,.grupo-grid { grid-template-columns:1fr 1fr; }
+      .completo { grid-column:1/-1; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="header-row">
+        <div>
+          <h1>Monitor</h1>
+          <p>Finanzas personales</p>
+        </div>
+        <div class="version">PWA V0.1</div>
+      </div>
+    </header>
+
+    <main>
+      <div id="cargando" class="cargando">Cargando Monitor...</div>
+
+      <div id="contenido" style="display:none;">
+
+        <div class="sync-panel">
+          <div class="sync-info">
+            <div id="syncEstado" class="sync-estado">Preparando modo offline...</div>
+            <div id="syncDetalle" class="sync-detalle">Los movimientos se guardan primero en este teléfono.</div>
+          </div>
+          <button id="btnConectar" type="button" class="btn-sync" onclick="conectarGoogle()">Conectar Google</button>
+        </div>
+        <section class="seccion">
+          <div class="seccion-titulo"><h2>Resumen</h2><span>Saldos actuales</span></div>
+          <div class="resumen">
+            <div class="resumen-card">
+              <div class="etiqueta">Dinero disponible</div>
+              <div id="resumenDisponible" class="valor">$0.00</div>
+            </div>
+            <div class="resumen-card">
+              <div class="etiqueta">Deuda TDC NU</div>
+              <div id="resumenDeuda" class="valor">$0.00</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="seccion">
+          <div class="seccion-titulo"><h2>Cuentas</h2><span>Selección móvil</span></div>
+          <div id="cuentasMovil" class="cuentas"></div>
+        </section>
+
+        <section class="seccion">
+          <div class="seccion-titulo"><h2>Registrar</h2></div>
+          <div class="registrar-card">
+            <p>Captura cualquier tipo de movimiento con los mismos catálogos de Monitor Web.</p>
+            <button type="button" class="btn-principal" onclick="abrirFormulario()">+ Registrar movimiento</button>
+          </div>
+        </section>
+
+        <section class="seccion">
+          <div class="seccion-titulo"><h2>Últimos movimientos</h2><span>Últimos 10</span></div>
+          <div id="movimientosRecientes" class="movimientos"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="barra-inferior">
+    <div class="barra-inner">
+      <button type="button" class="btn-flotante" onclick="abrirFormulario()">+ Registrar movimiento</button>
+    </div>
+  </div>
+
+  <div id="modalMovimiento" class="modal-fondo">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Registrar movimiento</h2>
+        <button type="button" class="btn-cerrar" onclick="cerrarFormulario()" aria-label="Cerrar">×</button>
+      </div>
+
+      <form id="formMovimiento" class="formulario">
+        <div id="mensaje" class="mensaje"></div>
+
+        <div class="grid-form">
+          <div class="campo">
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha" required>
+          </div>
+
+          <div class="campo">
+            <label for="tipoMovimiento">Tipo de movimiento</label>
+            <select id="tipoMovimiento" onchange="actualizarFormulario()" required>
+              <option value="">Selecciona...</option>
+            </select>
+          </div>
+
+          <div id="campoDireccionAjuste" class="campo oculto">
+            <label for="direccionAjuste">Tipo de ajuste</label>
+            <select id="direccionAjuste">
+              <option value="AUMENTAR">Aumentar saldo</option>
+              <option value="DISMINUIR">Disminuir saldo</option>
+            </select>
+          </div>
+
+          <div id="campoCuentaAjuste" class="campo oculto">
+            <label for="cuentaAjuste">Cuenta a ajustar</label>
+            <select id="cuentaAjuste"></select>
+          </div>
+
+          <div id="campoCuentaOrigen" class="campo">
+            <label for="cuentaOrigen">Cuenta origen</label>
+            <select id="cuentaOrigen" onchange="alCambiarCuentaOrigen()"></select>
+          </div>
+
+          <div id="campoCuentaDestino" class="campo">
+            <label for="cuentaDestino">Cuenta destino</label>
+            <select id="cuentaDestino"></select>
+          </div>
+
+          <div class="campo">
+            <label for="importe">Importe</label>
+            <input type="number" id="importe" min="0.01" step="0.01" inputmode="decimal" required>
+          </div>
+
+          <div id="campoCategoria" class="campo oculto">
+            <label for="categoria">Categoría</label>
+            <select id="categoria"></select>
+          </div>
+
+          <div id="campoSubcategoria" class="campo oculto">
+            <label for="subcategoria">Subcategoría</label>
+            <input type="text" id="subcategoria" autocomplete="off">
+          </div>
+
+          <div class="campo completo">
+            <label for="descripcion">Descripción</label>
+            <input type="text" id="descripcion" autocomplete="off" placeholder="Ej. Renta, gasolina, nómina...">
+          </div>
+
+          <div id="campoMetodoPago" class="campo oculto">
+            <label for="metodoPago">Método de pago</label>
+            <select id="metodoPago">
+              <option value=""></option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Tarjeta de débito">Tarjeta de débito</option>
+              <option value="Tarjeta de crédito">Tarjeta de crédito</option>
+            </select>
+            <div class="ayuda">Se sugiere según la cuenta; puedes cambiarlo.</div>
+          </div>
+
+          <div id="grupoTDC" class="grupo completo">
+            <h3>Compra con tarjeta de crédito</h3>
+            <div class="grupo-grid">
+              <div class="campo">
+                <label for="modalidadTDC">Modalidad</label>
+                <select id="modalidadTDC" onchange="actualizarCamposTDC()">
+                  <option value="NORMAL">Compra normal</option>
+                  <option value="MSI">Meses sin intereses</option>
+                </select>
+              </div>
+
+              <div id="campoMesesMSI" class="campo oculto">
+                <label for="mesesMSI">Número de meses</label>
+                <select id="mesesMSI">
+                  <option value="">Selecciona...</option>
+                  <option value="3">3 meses</option>
+                  <option value="6">6 meses</option>
+                  <option value="9">9 meses</option>
+                  <option value="12">12 meses</option>
+                  <option value="18">18 meses</option>
+                  <option value="24">24 meses</option>
+                </select>
+              </div>
+
+              <div id="campoFechaPrimeraMSI" class="campo oculto">
+                <label for="fechaPrimeraMensualidad">Primera mensualidad</label>
+                <input type="date" id="fechaPrimeraMensualidad">
+              </div>
+            </div>
+          </div>
+
+          <div id="campoTipoIngreso" class="campo oculto">
+            <label for="tipoIngreso">Tipo de ingreso</label>
+            <select id="tipoIngreso"></select>
+          </div>
+
+          <div id="campoRegimen" class="campo oculto">
+            <label for="regimen">Régimen</label>
+            <select id="regimen"></select>
+          </div>
+
+          <div id="campoTratamientoFiscal" class="campo completo oculto">
+            <label for="tratamientoFiscal">Tratamiento fiscal</label>
+            <select id="tratamientoFiscal"></select>
+          </div>
+
+          <div class="campo completo">
+            <label for="notas">Notas</label>
+            <textarea id="notas"></textarea>
+          </div>
+
+          <div class="campo completo">
+            <button type="submit" class="btn-guardar" id="btnGuardar">Guardar movimiento</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

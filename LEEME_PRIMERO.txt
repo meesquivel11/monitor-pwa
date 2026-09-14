@@ -1,0 +1,109 @@
+MONITOR PWA V0.1
+================
+
+OBJETIVO DE ESTA PRIMERA ENTREGA
+--------------------------------
+Esta versión ya contiene la base para:
+
+- instalar Monitor como PWA;
+- abrir la interfaz aunque no haya internet, después de la primera carga;
+- registrar movimientos sin conexión;
+- guardar cada movimiento en IndexedDB del teléfono;
+- mostrar los movimientos como pendientes;
+- sincronizarlos posteriormente sin duplicarlos.
+
+IMPORTANTE
+----------
+La captura OFFLINE funciona con estos archivos.
+
+La sincronización con Google Sheets queda preparada, pero requiere una
+configuración única de Google Cloud / Apps Script. No pongas contraseñas,
+tokens ni claves secretas dentro de estos archivos.
+
+ARCHIVOS
+--------
+index.html
+  Interfaz móvil.
+
+app.js
+  IndexedDB, cola offline, formulario y sincronización.
+
+config.js
+  Aquí colocaremos más adelante:
+  - Script ID
+  - OAuth Client ID
+
+manifest.webmanifest
+  Convierte la web en aplicación instalable.
+
+sw.js
+  Guarda la interfaz en caché para abrirla sin conexión.
+
+ApiMovil.gs
+  Funciones que debes agregar a Apps Script para la PWA.
+
+icons/
+  Iconos de instalación.
+
+
+PASO 1 — PUBLICAR LA PWA
+------------------------
+La opción más ligera es GitHub Pages.
+
+1. Crea un repositorio nuevo en GitHub, por ejemplo:
+   monitor-pwa
+
+2. Sube EL CONTENIDO de esta carpeta al repositorio.
+   index.html debe quedar en la raíz.
+
+3. En GitHub:
+   Settings > Pages
+
+4. En "Build and deployment":
+   Source: Deploy from a branch
+   Branch: main
+   Folder: /(root)
+
+5. Guarda.
+
+GitHub te dará una dirección similar a:
+
+https://TU_USUARIO.github.io/monitor-pwa/
+
+Abre esa dirección en el teléfono UNA VEZ con internet.
+Después el Service Worker podrá abrir la interfaz sin conexión.
+
+
+PASO 2 — PREPARAR APPS SCRIPT
+-----------------------------
+Todavía NO lo hagas hasta que hayamos confirmado la URL de GitHub Pages.
+
+Después haremos juntos:
+
+1. Añadir "Sync ID" como nueva columna V de MOVIMIENTOS.
+2. Añadir ApiMovil.gs al proyecto.
+3. Añadir 'Sync ID': datos.syncId || '' a registrarMovimiento().
+4. Asociar Apps Script a un proyecto estándar de Google Cloud.
+5. Habilitar Google Apps Script API.
+6. Crear credencial OAuth para la URL de tu PWA.
+7. Desplegar Apps Script como API executable.
+8. Pegar Script ID y Client ID en config.js.
+9. Probar sincronización.
+
+
+SEGURIDAD
+---------
+No se incrusta tu contraseña de Google en la PWA.
+No se deben publicar secretos en GitHub.
+La futura sincronización usará OAuth de Google.
+
+Los movimientos offline permanecen en el almacenamiento local de tu
+teléfono hasta que sean confirmados por Google Sheets.
+
+
+ACTUALIZACIONES FUTURAS
+-----------------------
+Mantendremos los mismos archivos y la misma URL.
+
+Cuando subamos una versión nueva a GitHub Pages, el Service Worker
+actualizará la PWA. No hará falta instalar una APK.
